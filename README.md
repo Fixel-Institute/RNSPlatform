@@ -4,7 +4,7 @@
 
 RNSPlatform is a Python-based data analysis tool for processing and analyzing session data collected with sensing-enabled neurostimulators such as Neuropace RNS® System.
 
-It is a modified version of the University of Florida Brain Recording Analysis and Visualization Online (BRAVO) Platform. 
+It is a modified version of the [University of Florida Brain Recording Analysis and Visualization Online (BRAVO) Platform](https://uf-bravo.jcagle.solutions/). 
 
 ## Front-end Host
 
