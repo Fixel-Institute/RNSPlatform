@@ -30,6 +30,16 @@ if __name__ == "__main__":
             except Timeout:
                 print("Lockfile Not Acquired before Timeout")
     
+        elif sys.argv[1] == "AperiodicExponent":
+            from modules.AnalysisPipelineScripts.AperiodicExponent import HandleRefreshAnalysis
+            lock = FileLock(sys.argv[1] + ".lock")
+            try:
+                with lock.acquire(timeout=30):
+                    HandleRefreshAnalysis()
+                    
+            except Timeout:
+                print("Lockfile Not Acquired before Timeout")
+    
     else:
         task_id = sys.argv[2]
         job = models.AsyncJob.find(uid=task_id)
