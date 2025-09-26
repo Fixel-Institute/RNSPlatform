@@ -96,7 +96,6 @@ function EmpaticaDataExplorer() {
       }
       setAvailableChannels({...availableChannels, active: []});
       setAvailableAnalysis(response.data);
-      console.log(response.data);
       setAlert(null);
     }).catch((error) => {
       SessionController.displayError(error, setAlert);

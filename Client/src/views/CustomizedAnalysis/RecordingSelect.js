@@ -60,7 +60,7 @@ function RecordingSelect({recordings, existingGroups, name, currentSelect, onClo
       RequestType: "RequestAll",
       ParticipantId: participant_uid
     }).then((response) => {
-      console.log(response.data);
+      
     });
   }, []);
 

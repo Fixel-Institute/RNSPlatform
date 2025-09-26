@@ -2509,7 +2509,7 @@ def queryChronicTimeline(participant_uid, config):
 
         ChronicTimeline.append(Activity)
 
-    return ChronicTimeline
+    return ChronicTimeline, TimelineAnnotation
 
 def queryChronicTimelineData(participant_uid, data_ids, channel, config):
     Participant = models.Participant.find(uid=participant_uid)

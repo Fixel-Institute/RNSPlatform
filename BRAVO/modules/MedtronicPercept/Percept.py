@@ -1480,7 +1480,7 @@ def extractTimeDomainStreamingData(JSON, sourceData=dict()):
             for nStream in range(1, len(Data["StreamingTD"])):
                 UpdatedTimestamp = Data["StreamingTD"][0]["FirstPacketDateTime"] + (Data["StreamingTD"][nStream]["Ticks"][0] - Data["StreamingTD"][0]["Ticks"][0]) / 1000
                 if np.abs(UpdatedTimestamp - Data["StreamingTD"][nStream]["FirstPacketDateTime"]) > 10:
-                    print(f"Warning: Stream {nStream} FirstPacketDateTime is not aligned with Stream 0, off by {Data["StreamingTD"][nStream]["FirstPacketDateTime"] - UpdatedTimestamp}")
+                    print(f"Warning: Stream {nStream} FirstPacketDateTime is not aligned with Stream 0, off by {Data['StreamingTD'][nStream]['FirstPacketDateTime'] - UpdatedTimestamp}")
                 else:
                     Data["StreamingTD"][nStream]["FirstPacketDateTime"] = UpdatedTimestamp
                 
@@ -1595,7 +1595,7 @@ def extractPowerDomainStreamingData(JSON, sourceData=dict()):
             for nStream in range(1, len(Data["StreamingPower"])):
                 UpdatedTimestamp = Data["StreamingPower"][0]["FirstPacketDateTime"] + (Data["StreamingPower"][nStream]["Ticks"][0] - Data["StreamingPower"][0]["Ticks"][0]) / 1000
                 if np.abs(UpdatedTimestamp - Data["StreamingPower"][nStream]["FirstPacketDateTime"]) > 10:
-                    print(f"Warning: Stream {nStream} FirstPacketDateTime is not aligned with Stream 0, off by {Data["StreamingPower"][nStream]["FirstPacketDateTime"] - UpdatedTimestamp}")
+                    print(f"Warning: Stream {nStream} FirstPacketDateTime is not aligned with Stream 0, off by {Data['StreamingPower'][nStream]['FirstPacketDateTime'] - UpdatedTimestamp}")
                 else:
                     Data["StreamingPower"][nStream]["FirstPacketDateTime"] = UpdatedTimestamp
 

@@ -216,13 +216,6 @@ export default function GenericTimeline({data, availableChannels, annotations, h
           }, ax);
         }
       } else if (renderData[i].type == "bar") {
-        //if (!yLim[renderData[i].axName]) yLim[renderData[i].axName] = [0,1];
-        //const currentMax = Math.max(renderData[i].y.filter((a) => a !== null));
-        //if (currentMax > yLim[renderData[i].axName][1]) {
-        //  yLim[renderData[i].axName][1] = currentMax*1.1;
-        //  fig.setYlim(yLim[renderData[i].axName], ax);
-        //};
-        console.log(renderData[i])
         if (!renderData[i].options.hidden && ax) {
           fig.setScaleType("category", "y", ax);
           fig.bar(renderData[i].x, renderData[i].y, renderData[i].base, renderData[i].options, ax);

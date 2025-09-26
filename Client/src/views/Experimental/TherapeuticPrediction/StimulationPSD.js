@@ -38,7 +38,7 @@ function StimulationPSD({dataToRender, channelInfos, height, type, onCenterFrequ
       fig.subplots(1, 1, {sharey: false, sharex: false});
 
       fig.setScaleType("log", "y");
-      fig.setTickValue([0.001, 0.01, 0.1, 1, 10, 100, 1000], "y");
+      fig.setTickValue([0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000], "y");
       fig.setYlim([-3, 2]);
       fig.setXlim([0, 100]);
       fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Frequency", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)})`, {fontSize: 15});

@@ -462,7 +462,6 @@ export default function StudyManagement() {
                     <MDBox pb={2} px={2} lineHeight={1.25} sx={{position: "absolute", bottom: 0, width: "100%"}}>
                       <MDButton variant={"contained"} color={"info"} fullWidth onClick={() => {
                         navigate(subreport.route.replace(":study_uid", activeStudy.value), {replace: false});
-                        console.log(subreport.route.replace(":study_uid", activeStudy.value))
                       }}>
                         {"View Analysis"}
                       </MDButton>

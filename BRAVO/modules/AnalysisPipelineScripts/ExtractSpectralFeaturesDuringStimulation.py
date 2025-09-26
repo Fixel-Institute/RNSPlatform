@@ -14,7 +14,7 @@ from modules.HelperFunctions import utc_offset_to_timezone
 DATABASE_PATH = os.environ.get('DATASERVER_PATH')
 
 AnalysisScriptType = "ExtractSpectralFeaturesDuringStimulation"
-AnalysisMethodVersion = "1.0.1"
+AnalysisMethodVersion = "1.0.2"
 
 def HandleRefreshAnalysis():
     Participants = [participant.get_info() for participant in models.Participant.find_all()]
@@ -34,17 +34,15 @@ def HandleRefreshAnalysis():
         source_file.save()
 
     if not "Version" in source_file.metadata:
-        source_file.metadata["Version"] = "1.0.0"
+        source_file.metadata["Version"] = AnalysisMethodVersion
         source_file.save()
 
-    if source_file.metadata["Version"] != AnalysisMethodVersion:
-        RecordingCollections = []
-    else:
-        RecordingCollections = Database.loadSourceFile(source_file.pointer, source_file.hashed)
+    # Reset Collections
+    RecordingCollections = []
 
     def checkHistory(items, newItem):
         for item in items:
-            if item["ParticipantId"] == newItem["ParticipantId"] and item["Date"] == newItem["Date"] and  item["Contact"] == newItem["Contact"]:
+            if item["ParticipantId"] == newItem["ParticipantId"] and item["Date"] == newItem["Date"] and item["Contact"] == newItem["Contact"] and item["TherapyParameters"] == newItem["TherapyParameters"]:
                 return True
         return False
 
@@ -100,7 +98,6 @@ def HandleRefreshAnalysis():
                         }
                         if not checkHistory(RecordingCollections, collection):
                             RecordingCollections.append(collection)
-                            
 
     userConfig, _ = Database.retrieveProcessingSettings({"ProcessingConfiguration": {
         "TimeSeriesRecording": {
@@ -150,7 +147,7 @@ def HandleRefreshAnalysis():
 
     for collection in RecordingCollections:
         print(collection["ParticipantId"] + " " + collection["Contact"])
-        
+
         SensingChannel = "Unknown"
         if collection["Contact"].endswith("E01-E02"):
             SensingChannel = collection["Contact"].replace("E01-E02","E00-E03")
@@ -184,7 +181,20 @@ def HandleRefreshAnalysis():
                                             UniqueTherapyAmplitudes[amp] = np.concatenate((UniqueTherapyAmplitudes[amp], therapy["TherapySeries"][k]["Spectrum"][chan]), axis=1)
         
         GammaFrequency = float(collection["TherapyParameters"].split("Hz ")[0]) / 2
-        GammaSelection = (PSDFrequency < GammaFrequency+2) & (PSDFrequency > GammaFrequency-2)
+        GammaSelection = (PSDFrequency < GammaFrequency+5) & (PSDFrequency > GammaFrequency-5)
+
+        AllPSDs = []
+        for amp in sorted(collection["UniqueAmplitudes"]):
+            if amp in UniqueTherapyAmplitudes.keys():
+                if UniqueTherapyAmplitudes[amp].shape[1] > 3:
+                    AllPSDs.append(np.nanmedian(UniqueTherapyAmplitudes[amp],axis=1))
+        
+        if len(AllPSDs) > 1:
+            AllPSDs = np.mean(np.array(AllPSDs),axis=0)
+            MaxPowerIndex = np.argmax(AllPSDs[GammaSelection])
+            GammaFrequency = PSDFrequency[GammaSelection][MaxPowerIndex]
+            GammaSelection = (PSDFrequency < GammaFrequency+2) & (PSDFrequency > GammaFrequency-2)
+        
         collection["PSDs"] = []
         for amp in sorted(collection["UniqueAmplitudes"]):
             if amp in UniqueTherapyAmplitudes.keys():
@@ -196,13 +206,14 @@ def HandleRefreshAnalysis():
                         "Frequency": PSDFrequency
                     }
                     PSDInfo["AperiodicComponent"] = ExtractAperiodicComponents(PSDFrequency, MovingAverageFilter(PSDInfo["PowerSpectrum"],5))
-                    
+
                     # Calculate the Gamma Power and Fluctuation
                     GammaPower = np.nanmedian(UniqueTherapyAmplitudes[amp][GammaSelection, :],axis=0)
                     GammaPower = GammaPower[~np.isnan(GammaPower)]
                     GammaFluctuation = np.mean(UniqueTherapyAmplitudes[amp][((PSDFrequency < 90) & (PSDFrequency > 60)) & (~GammaSelection), :],axis=1)
                     if stats.sem(GammaPower) > 1e5 or stats.sem(GammaFluctuation) > 1e5:
                         continue
+
                     ConfidenceInterval = stats.t.interval(0.95, len(GammaPower)-1, loc=np.median(GammaPower) / np.median(GammaFluctuation), scale=np.std(GammaFluctuation/ np.median(GammaFluctuation)))
                     PSDInfo["FTG"] = {
                         "CenterFrequency": GammaFrequency,
@@ -281,7 +292,7 @@ def HandleRefreshAnalysis():
             collection["BetaStats"]["MeanCorrelation"] = np.mean([corr["Correlation"] for corr in Correlations])
             collection["BetaStats"]["PercentSignificant"] = np.sum([corr["PValue"] < 0.05 for corr in Correlations]) / len(Correlations) * 100
 
-        collection["FTGStats"] = {"FirstAppearance": 0, "MaxGamma": [-99,-99], "LastAppearance": 0}
+        collection["FTGStats"] = {"FirstAppearance": 0, "MaxGamma": [-99,-99], "LastAppearance": 0, "GammaFrequency": GammaFrequency}
         if len(collection["PSDs"]) > 1:
             for i in range(1, len(collection["PSDs"])):
                 if collection["PSDs"][i]["FTG"]["Power"][0] > collection["PSDs"][0]["FTG"]["Power"][1]:

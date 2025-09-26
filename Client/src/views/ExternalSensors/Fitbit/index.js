@@ -87,7 +87,6 @@ export default function FitbitDashboard() {
       RequestType: "RequestOverview",
       ParticipantId: participant_uid
     }).then((response) => {
-      console.log(response.data);
       setData(response.data)
       setAlert(null)
     }).catch((error) => {

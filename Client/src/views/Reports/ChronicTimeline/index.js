@@ -38,6 +38,7 @@ import CachedIcon from '@mui/icons-material/Cached';
 
 // core components
 import GenericTimeline from "./GenericTimeline";
+import StatisticalTable from "./StatisticalTable";
 
 import DatabaseLayout from "layouts/DatabaseLayout";
 
@@ -151,11 +152,16 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
   const handleAddEvent = async (eventInfo) => {
     setAlert(<LoadingProgress />);
     try {
+      let duration = 0
+      duration = new Date(eventInfo.enddate.toISOString().split("T")[0] + "T" + eventInfo.endtime.toISOString().split("T")[1]).getTime() / 1000;
+      duration -= (eventInfo.enddate.utcOffset() - eventInfo.endtime.utcOffset()) * 60;
+      duration -= eventInfo.time / 1000;
+
       const response = await SessionController.query("/api/addParticipantAnnotation", {
         ParticipantId: participant_uid,
         EventName: eventInfo.name,
         EventTime: eventInfo.time / 1000,
-        EventDuration: parseFloat(eventInfo.duration),
+        EventDuration: duration,
         EventType: "ChronicCustomEvent"
       });
       setAlert(null);
@@ -284,6 +290,25 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
                   </Grid>
                 </Card>
               </Grid>
+
+              {data ? (
+                <Grid item xs={12}>
+                  <Card sx={{width: "100%"}}>
+                    <Grid container>
+                      <Grid item xs={12}>
+                        <MDBox p={2} display={"flex"} flexDirection={"row"} justifyContent={"space-between"}>
+                          <MDTypography variant={"h6"} fontSize={24}>
+                            {"Statistical Table"}
+                          </MDTypography>
+                        </MDBox>
+                      </Grid>
+                      <Grid item xs={12} lg={12}>
+                        <StatisticalTable data={data} availableChannels={availableChannels} annotations={annotations} />
+                      </Grid>
+                    </Grid>
+                  </Card>
+                </Grid>
+              ) : null}
             </Grid>
           </MDBox>
           <MDBox style={{

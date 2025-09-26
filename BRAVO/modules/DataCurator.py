@@ -312,6 +312,7 @@ def MedtronicPerceptJSONDecoder(source_file, device=None, person=None):
     source_file.metadata["Timezone"] = DatabaseEntries["SessionOverview"]["SessionTimezone"]
     source_file.metadata["Device"] = device.uid
     source_file.owner = person
+    source_file.date = DatabaseEntries["SessionOverview"]["SessionTimestamp"]
     source_file.save()
 
     person.last_update = models.current_time()

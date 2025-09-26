@@ -60,7 +60,7 @@ function MultipleRecordingSelect({recordings, existingGroups, name, currentSelec
       RequestType: "RequestAll",
       ParticipantId: participant_uid
     }).then((response) => {
-      console.log(response.data);
+      
     });
   }, []);
 

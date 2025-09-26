@@ -103,7 +103,10 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
             if (!availableChannels.includes(channelName)) {
               availableChannels.push(channelName);
             }
-            const therapyName = channelName + " (" + response.data.ChronicNeuralActivity[i].TherapyString + " Sense: " + response.data.ChronicNeuralActivity[i].RecordingString + ")"
+            if (response.data.ChronicNeuralActivity[i].Description.Bypassed) {
+              continue;
+            }
+            const therapyName = channelName + " (" + response.data.ChronicNeuralActivity[i].Description[j].Stimulation + " Sense: " + response.data.ChronicNeuralActivity[i].Description[j].SensingFrequency + ")"
             if (!availableTherapy.includes(therapyName)) {
               availableTherapy.push(therapyName);
             }
@@ -356,14 +359,6 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
                           <Switch value={circadianState.eventCount} onClick={() => setCircadianState({...circadianState, eventCount: !circadianState.eventCount})} />
                           <MDTypography variant={"subtitle"} fontSize={15}>
                             {"Show Event Histogram on Circadian Rhythm"}
-                          </MDTypography>
-                        </Stack>
-                        </MDBox>
-                        <MDBox px={2} lineHeight={1}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Switch value={circadianState.amplitude} onClick={() => setCircadianState({...circadianState, amplitude: !circadianState.amplitude})} />
-                          <MDTypography variant={"subtitle"} fontSize={15}>
-                            {"Show Stimulation Amplitude in Circadian"}
                           </MDTypography>
                         </Stack>
                         </MDBox>

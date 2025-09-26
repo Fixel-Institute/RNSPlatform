@@ -74,7 +74,7 @@ function StimulationPSD({dataToRender, activeChannels, onRequestServerAnalysis, 
       } else {
         fig.subplots(1, 1, {sharey: false, sharex: false});
         fig.setScaleType("log", "y");
-        fig.setTickValue([0.001, 0.01, 0.1, 1, 10, 100, 1000], "y");
+        fig.setTickValue([0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000], "y");
         fig.setYlim([-3, 2]);
         fig.setXlim([0, 100]);
         fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Frequency", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)})`, {fontSize: 15});
@@ -191,10 +191,11 @@ function StimulationPSD({dataToRender, activeChannels, onRequestServerAnalysis, 
             
             for (let stage in cacheData[label][channel][parameter]) {
               const stageColor = colorMapper(parseFloat(cacheData[label][channel][parameter][stage].State)*10);
-
+              const ylim = math.quantileSeq(math.abs(math.matrix(cacheData[label][channel][parameter][stage].MeanPower)), [0.25, 1]).map((a) => Math.round(Math.log10(a)));
               graphSeries.push({
                 type: "line",
                 x: cacheData[label][channel][parameter][stage].Frequency, y: cacheData[label][channel][parameter][stage].MeanPower, error_y: cacheData[label][channel][parameter][stage].StdErrPower,
+                ylim: ylim,
                 line_options: {
                   id: parameter + ": " + cacheData[label][channel][parameter][stage].State,
                   name: parameter + ": " + cacheData[label][channel][parameter][stage].State,
@@ -266,9 +267,11 @@ function StimulationPSD({dataToRender, activeChannels, onRequestServerAnalysis, 
             }
 
             if (matrix && frequency) {
+              const ylim = math.quantileSeq(math.abs(matrix), [0.25, 1]).map((a) => Math.round(Math.log10(a)));
               graphSeries.push({
                 type: "line",
                 x: frequency, y: math.mean(matrix, 1)._data, error_y: math.std(matrix, 1)._data.map((a) => a/math.sqrt(math.size(matrix)._data[1])),
+                ylim: ylim,
                 line_options: {
                   id: parameter + ": " + value,
                   name: parameter + ": " + value,
@@ -321,9 +324,13 @@ function StimulationPSD({dataToRender, activeChannels, onRequestServerAnalysis, 
 
   const refreshRender = (fig, figName) => {
     let maxYlim = 0;
+    let psdYlim = [0,0]
     for (let i in renderData) {
       if (renderData[i].figName == figName) {
         if (renderData[i].type === "line") {
+          if (renderData[i].ylim[1] > psdYlim[1]) psdYlim[1] = renderData[i].ylim[1];
+          if (renderData[i].ylim[0] < psdYlim[0]) psdYlim[0] = renderData[i].ylim[0];
+          fig.setYlim(psdYlim);
           fig.shadedErrorBar(renderData[i].x, renderData[i].y, renderData[i].error_y, renderData[i].line_options, renderData[i].shade_options);
         } else if (renderData[i].type === "box") {
           fig.box(renderData[i].x, renderData[i].y, renderData[i].options);
@@ -426,8 +433,8 @@ function StimulationPSD({dataToRender, activeChannels, onRequestServerAnalysis, 
         let visibility = activeChannels.includes(a) && (figGroup[a] && figGroup[a].traces.length > 0);
         let otherIndex = thatIndex === 0 ? 1 : 0;
         return [
-          <Grid key={figureTitle + "_SwitchControl"} item xs={12}>
-            <MDBox px={3}>
+          <Grid key={figureTitle + "_SwitchControl"} item xs={12} >
+            <MDBox px={3} style={{display: visibility ? "" : "none"}}>
               <FormControlLabel control={<Switch value={therapyLabel[a] != a} onChange={(event, value) => {
                 if (dataToRender.AllChannels.length == 2) {
                   setTherapyLabel({...therapyLabel, [a]: therapyLabel[a] === dataToRender.AllChannels[otherIndex] ? dataToRender.AllChannels[thatIndex] : dataToRender.AllChannels[otherIndex]})

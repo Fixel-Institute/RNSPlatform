@@ -119,7 +119,6 @@ function ParticipantListTable({data, getRecordingData}) {
   
   React.useEffect(() => {
     var collectiveData = [];
-    console.log(participantData)
     for (var i = 0; i < participantData.length; i++) {
       if (filterOptions.Keyword.length > 0) {
         if (!participantData[i].Name.includes(filterOptions.Keyword)) {

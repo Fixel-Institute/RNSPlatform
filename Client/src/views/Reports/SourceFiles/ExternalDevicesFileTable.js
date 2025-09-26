@@ -77,7 +77,7 @@ function ExternalDevicesFileTable({data, downloadData, deleteData}) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.sort((a,b) => a.Date - b.Date).map((source) => {
+          {data.sort((a,b) => a.DateOfRecording - b.DateOfRecording).map((source) => {
             return <TableRow key={source.Id}>
               <TableCell style={{borderBottom: "1px solid rgba(224, 224, 224, 0.4)"}}>
                 <MDTypography variant="h6" style={{marginBottom: 0}} fontSize={18} fontWeight={"bold"}>
@@ -93,22 +93,22 @@ function ExternalDevicesFileTable({data, downloadData, deleteData}) {
                 </MDTypography>
               </TableCell>
               <TableCell style={{borderBottom: "1px solid rgba(224, 224, 224, 0.4)"}}>
-                  {source.SensorType.map((a) => {
+                  {source.SensorType ? source.SensorType.map((a) => {
                     return (
                       <MDTypography variant="h6" style={{marginBottom: 0}} fontSize={12} fontWeight={"bold"}>
                         {a}
                       </MDTypography>
                     )
-                  })}
+                  }) : "N/A"}
               </TableCell>
               <TableCell style={{borderBottom: "1px solid rgba(224, 224, 224, 0.4)"}}>
-                  {source.RecordingCount.map((a) => {
+                  {source.RecordingCount ? source.RecordingCount.map((a) => {
                     return (
                       <MDTypography variant="h6" style={{marginBottom: 0}} fontSize={12} fontWeight={"bold"}>
                         {a + " Channels"}
                       </MDTypography>
                     )
-                  })}
+                  }) : "N/A"}
               </TableCell>
               <TableCell style={{borderBottom: "1px solid rgba(224, 224, 224, 0.4)", display: "flex", flexDirection: "column", justifyContent: "center"}}>
                 <MDButton variant="contained" color="success" size="small" onClick={() => downloadData(source.Id)}>

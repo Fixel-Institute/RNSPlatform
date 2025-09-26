@@ -124,7 +124,7 @@ function BurstDynamics({dataToRender, participant_uid, annotations, figureTitle}
     
     const ax = fig.subplots(2, 1, {sharey: false, sharex: false});
     fig.setScaleType("log", "y", ax[0]);
-    fig.setTickValue([0.001, 0.01, 0.1, 1, 10, 100, 1000], "y", ax[0]);
+    fig.setTickValue([0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000], "y", ax[0]);
     fig.setYlim([-3, 2], ax[0]);
     fig.setXlim([0, 100], ax[0]);
     fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Frequency", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)})`, {fontSize: 15}, ax[0]);
@@ -191,10 +191,12 @@ function BurstDynamics({dataToRender, participant_uid, annotations, figureTitle}
           for (let annotation in cacheData[channel]) {
             if (cacheData[channel][annotation].power) {
               counter += 1;
+              const ylim = math.quantileSeq(math.abs(math.matrix(cacheData[channel][annotation].power)), [0.25, 1]).map((a) => Math.round(Math.log10(a)));
               graphSeries.push({
                 type: "line",
                 x: cacheData[channel][annotation].freq, y: math.mean(cacheData[channel][annotation].power, 1)._data, error_y: math.std(cacheData[channel][annotation].power, 1)._data.map((a) => a/math.sqrt(cacheData[channel][annotation].power._size[1])),
-                line_options: {
+                ylim: ylim,
+                  line_options: {
                   name: annotation,
                   legendgroup: annotation,
                   color: colorMapper(counter),
@@ -224,9 +226,10 @@ function BurstDynamics({dataToRender, participant_uid, annotations, figureTitle}
     for (let i in renderData) {
       if (renderData[i].type === "line") {
         if (renderData[i].axName == "Burst") {
-          fig.setYlim([-renderData[i].ylim, renderData[i].ylim], ax[1]);
+          fig.setYlim([0, renderData[i].ylim], ax[1]);
           fig.plot(renderData[i].x, renderData[i].y, renderData[i].options, ax[1]);
         } else {
+          fig.setYlim(renderData[i].ylim, ax[0]);
           fig.shadedErrorBar(renderData[i].x, renderData[i].y, renderData[i].error_y, renderData[i].line_options, renderData[i].shade_options, ax[0]);
         }
       } else if (renderData[i].type === "shading") {

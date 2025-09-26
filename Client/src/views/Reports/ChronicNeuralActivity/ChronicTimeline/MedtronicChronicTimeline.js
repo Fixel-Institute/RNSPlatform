@@ -89,25 +89,40 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
 
   }, [fig, availableChannels]);
 
-  const getAdaptiveParameters = (therapyNote) => {
-    if (!therapyNote) return { "Mode": "Unknown" };
-    const Recordings = therapyNote.Adaptive.RecordingConfiguration.Config;
+  const getMax = (list) => {
+    let max = -Infinity;
+    for (let i in list) {
+      if (list[i] && list[i] > max) max = list[i];
+    }
 
-    let AdaptiveParameters = {};
-    if (Recordings.Thresholds) {
-      if (Recordings.Thresholds.LFPThresholds[0] !== 20 && Recordings.Thresholds.LFPThresholds[1] !== 30) {
-        AdaptiveParameters["LFPThresholds"] = Recordings.Thresholds.LFPThresholds;
-        if (AdaptiveParameters["LFPThresholds"][0] == AdaptiveParameters["LFPThresholds"][1]) {
-          AdaptiveParameters["LFPThresholds"] = [AdaptiveParameters["LFPThresholds"][0]];
+    if (max === -Infinity) return 0;
+    return max;
+  }
+
+  const getAdaptiveParameters = (therapyNote, channelName) => {
+    if (!therapyNote) return { "Mode": "Unknown" };
+
+    let Parameters = {"Mode": "Adaptive"};
+    for (let i in therapyNote.StimulationSettings) {
+      if (therapyNote.StimulationSettings[i].Electrode && channelName.startsWith(therapyNote.StimulationSettings[i].Electrode.CustomName)) {
+        const Recordings = therapyNote.AdaptiveSettings[i].RecordingConfiguration.Config;
+        if (Recordings.Thresholds) {
+          if (typeof Recordings.Thresholds.LFPThresholds[0] === "object") {
+            Recordings.Thresholds.LFPThresholds = Recordings.Thresholds.LFPThresholds[0].Value;
+          }
+          if (Recordings.Thresholds.LFPThresholds[0] !== 20 && Recordings.Thresholds.LFPThresholds[1] !== 30) {
+            Parameters["LFPThresholds"] = Recordings.Thresholds.LFPThresholds;
+            if (Parameters["LFPThresholds"][0] == Parameters["LFPThresholds"][1]) {
+              Parameters["LFPThresholds"] = [Parameters["LFPThresholds"][0]];
+            }
+          }
+        }
+        if (therapyNote.AdaptiveSettings[i].StimulationConfiguration.Type == "Medtronic Adaptive") {
+          Parameters["StimulationLimits"] = Recordings.Thresholds.AmplitudeThreshold;
         }
       }
     }
-
-    if (therapyNote.Adaptive.StimulationConfiguration.Type == "Medtronic Adaptive") {
-      AdaptiveParameters["StimulationLimits"] = Recordings.Thresholds.AmplitudeThreshold;
-    }
-
-    return AdaptiveParameters;
+    return Parameters;
   }
 
   useEffect(() => {
@@ -118,8 +133,8 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
       let timeArray = data[i]["Time"].map((a) => new Date(a*1000));
       for (let j in data[i].ChannelNames) {
         const channelName = data[i].Device.Heritage + ": " + (data[i].ChannelNames[j].endsWith("Amplitude") ? data[i].ChannelNames[j].replace(" Amplitude", " Stimulation") : data[i].ChannelNames[j].replace(" LFP", ""));
-        if (!data[i].RecordingString.endsWith("Bypassed") || channelName.endsWith("Stimulation")) {
-          const AdaptiveParameters = getAdaptiveParameters(data[i].TherapyNote);
+        if (!data[i].Description[j].Bypassed || channelName.endsWith("Stimulation")) {
+          const AdaptiveParameters = getAdaptiveParameters(data[i].TherapyNote, data[i]["ChannelNames"][j]);
           if (channelName.endsWith("Stimulation")) {
             if (AdaptiveParameters.StimulationLimits && showAdaptiveMode) {
               if (AdaptiveParameters.StimulationLimits[1] !== 0) {
@@ -130,7 +145,7 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
                     id: channelName,
                     linewidth: 1,
                     color: "#FF0000",
-                    hovertemplate: "  %{x} <br>  " + data[i].TherapyString + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f}% [" + AdaptiveParameters.StimulationLimits[0].toFixed(1) + " - " + AdaptiveParameters.StimulationLimits[1].toFixed(1) + "] <extra></extra>"
+                    hovertemplate: "  %{x} <br>  " + data[i].Description[j].Stimulation + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f}% [" + AdaptiveParameters.StimulationLimits[0].toFixed(1) + " - " + AdaptiveParameters.StimulationLimits[1].toFixed(1) + "] <extra></extra>"
                   }, 
                   axName: channelName
                 });
@@ -144,21 +159,22 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
                 id: channelName,
                 linewidth: 1,
                 color: "#FF0000",
-                hovertemplate: showAdaptiveMode ? ("  %{x} <br>  " + data[i].TherapyString + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f}% <extra></extra>") :
-                ("  %{x} <br>  " + data[i].TherapyString + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f} " + data[i].ChannelUnits[j] + " <extra></extra>")
+                hovertemplate: showAdaptiveMode ? ("  %{x} <br>  " + data[i].Description[j].Stimulation + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f}% <extra></extra>") :
+                ("  %{x} <br>  " + data[i].Description[j].Stimulation + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f} " + data[i].ChannelUnits[j] + " <extra></extra>")
               }, 
               axName: channelName
             });
           } else {
+
             lineSeries.push({
               type: "lineseries",
               x: timeArray, y: data[i]["Data"][j],
-              ylim: [0,Math.max(data[i]["Data"][j])],
+              ylim: [0,getMax(data[i]["Data"][j])],
               options: {
                 id: channelName,
                 linewidth: 1,
                 color: channelName.endsWith("Stimulation") ? "#FF0000" : "#000000" ,
-                hovertemplate: "  %{x} <br>  " + data[i].TherapyString + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].RecordingString)) + "<br>  %{y:.2f}" + data[i].ChannelUnits[j] + " <extra></extra>"
+                hovertemplate: "  %{x} <br>  " + data[i].Description[j].Stimulation + (channelName.endsWith("Stimulation") ? "" : ("<br>  Recording: " + data[i].Description[j].SensingFrequency)) + "<br>  %{y:.2f}" + data[i].ChannelUnits[j] + " <extra></extra>"
               }, 
               axName: channelName
             });
@@ -267,8 +283,8 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
       const ax = fig.getAxes(renderData[i].axName);
       if (renderData[i].type == "lineseries") {
         if (!yLim[renderData[i].axName]) yLim[renderData[i].axName] = [0,1];
-        if (Math.max(renderData[i].y) > yLim[renderData[i].axName][1]) {
-          yLim[renderData[i].axName][1] = Math.max(renderData[i].y)*1.1;
+        if (getMax(renderData[i].y) > yLim[renderData[i].axName][1]) {
+          yLim[renderData[i].axName][1] = getMax(renderData[i].y)*1.1;
           fig.setYlim(yLim[renderData[i].axName], ax);
         };
       } else if (renderData[i].type === "shading") {

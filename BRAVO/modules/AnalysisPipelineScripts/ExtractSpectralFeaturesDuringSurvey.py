@@ -34,13 +34,10 @@ def HandleRefreshAnalysis():
         source_file.save()
 
     if not "Version" in source_file.metadata:
-        source_file.metadata["Version"] = "1.0.0"
+        source_file.metadata["Version"] = AnalysisMethodVersion
         source_file.save()
 
-    if source_file.metadata["Version"] != AnalysisMethodVersion:
-        RecordingCollections = []
-    else:
-        RecordingCollections = Database.loadSourceFile(source_file.pointer, source_file.hashed)
+    RecordingCollections = []
 
     def checkHistory(items, newItem):
         for item in items:

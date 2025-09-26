@@ -11,7 +11,7 @@
 * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -30,65 +30,52 @@ import MDBox from "components/MDBox";
 
 import { usePlatformContext, setContextState } from "context";
 
-function LayoutOptions({setAlert}) {
+const toggleGroup = {
+  "Neural Response from Effect of Stimulation": "StimulationPSDs",
+  "Burst Dynamics": "BurstDynamics",
+  "Event-Onset Spectrogram": "EventOnsetSpectrogram",
+  "Event-State PSD": "EventStatePSD"
+}
+
+function LayoutOptions({show, close, setAlert}) {
   const [controller, dispatch] = usePlatformContext();  
-  const { patientID, BrainSensestreamLayout, language } = controller;
+  const { TimeSeriesAnalysisLayout, language } = controller;
   
   const handleStateChange = (type, state) => {
-    setContextState(dispatch, "BrainSensestreamLayout", {...BrainSensestreamLayout, [type]: state});
+    setContextState(dispatch, "TimeSeriesAnalysisLayout", {...TimeSeriesAnalysisLayout, [type]: state});
   };
 
-  return (
-    <Dialog open={true} onClose={() => setAlert(null)}>
+  return useMemo(() => (
+    <Dialog open={show} onClose={() => close()}>
       <MDBox px={2} pt={2}>
         <MDTypography variant="h5">
-          {"Realtime Streaming Layout Toggles"} 
+          {"Time-series Analysis Layout Toggles"} 
         </MDTypography>
       </MDBox>
       <DialogContent>
         <MDBox px={2} pt={2}>
           <Grid container spacing={0}>
-            <Grid item xs={6} sx={{
-              wordWrap: "break-word",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word"
-            }}>
-              <MDTypography fontSize={18} fontWeight={"bold"}>
-                {"Neural Response from Effect of Stimulation"}
-              </MDTypography>
-              <Switch checked={!BrainSensestreamLayout.StimulationPSDs} onChange={(event, checked) => handleStateChange("StimulationPSDs", !checked)} />
-              <Divider variant="middle" />
-            </Grid>
-            <Grid item xs={6} sx={{
-              wordWrap: "break-word",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word"
-            }}>
-              <MDTypography fontSize={18} fontWeight={"bold"}>
-                {"Event-Onset Spectrogram"}
-              </MDTypography>
-              <Switch checked={!BrainSensestreamLayout.EventOnsetSpectrogram} onChange={(event, checked) => handleStateChange("EventOnsetSpectrogram", !checked)} />
-              <Divider variant="middle" />
-            </Grid>
-            <Grid item xs={6} sx={{
-              wordWrap: "break-word",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word"
-            }}>
-              <MDTypography fontSize={18} fontWeight={"bold"}>
-                {"Event-State PSD"}
-              </MDTypography>
-              <Switch checked={!BrainSensestreamLayout.EventStatePSD} onChange={(event, checked) => handleStateChange("EventStatePSD", !checked)} />
-              <Divider variant="middle" />
-            </Grid>
+            {Object.keys(toggleGroup).map((key) => {
+              return <Grid item key={key} xs={6} sx={{
+                wordWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word"
+              }}>
+                <MDTypography fontSize={18} fontWeight={"bold"}>
+                  {key}
+                </MDTypography>
+                <Switch checked={!TimeSeriesAnalysisLayout[toggleGroup[key]]} onChange={(event, checked) => handleStateChange(toggleGroup[key], !checked)} />
+                <Divider variant="middle" />
+              </Grid> 
+            })}
           </Grid>
         </MDBox>
       </DialogContent>
       <DialogActions>
-        <MDButton color="secondary" onClick={() => setAlert(null)}>{"Close"}</MDButton>
+        <MDButton color="secondary" onClick={() => close()}>{"Close"}</MDButton>
       </DialogActions>
     </Dialog>
-  )
+  ), [show, TimeSeriesAnalysisLayout]);
 };
 
 export default LayoutOptions;

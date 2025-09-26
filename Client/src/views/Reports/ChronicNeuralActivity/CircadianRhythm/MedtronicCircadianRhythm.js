@@ -57,7 +57,7 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
       fig.clearData();
     }
 
-    const ax = fig.subplots(1, 1, {sharex: true, sharey: true});
+    let ax = fig.subplots(1, 1, {sharex: true, sharey: true});
     fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Time", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Local", language)})`, {fontSize: 15}, ax[0]);
     fig.setYlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Power", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "AU", language)})`, {fontSize: 15}, ax[0]);
     fig.setLayoutProps({
@@ -82,8 +82,8 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
 
     fig.setAxisProps({
       tickformat: "%H:%M"
-    }, "x", ax[0])
-    
+    }, "x", ax[0]);
+
     if (!fig.fresh) {
       refreshRender();
     }
@@ -106,10 +106,23 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
         showlegend: false
       }, 
     }, {
+      type: "line", x: [], y: [], error_y: [],
+      line_options: {
+        linewidth: 2,
+        color: "#bb2b2b",
+        hovertemplate: `  %{y:.2f} ${dictionaryLookup(dictionary.FigureStandardUnit, " mA", language)}<extra></extra>`,
+        showlegend: false
+      }, 
+      shade_options: {
+        color: "#bb2b2b",
+        alpha: 0.3,
+        showlegend: false
+      }, 
+    }, {
       type: "bar", x: [], y: [], options: {
         width: 600000,
         opacity: 0.3,
-        facecolor: "#FF0000",
+        facecolor: "#196ac7",
         showlegend: false,
       }
     }, {
@@ -133,12 +146,18 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
     }
 
     let xData = [], yData = [], events = [];
+    let yStim = [];
     for (let i in dataToRender) {
       for (let j in dataToRender[i].ChannelNames) {
-        if (dataToRender[i].ChannelNames[j].endsWith(circadianState.amplitude ? " Amplitude" : " LFP")) {
-          const channelName = dataToRender[i].Device.Heritage + ": " + dataToRender[i].ChannelNames[j].replace(" LFP", "").replace(" Amplitude", "");
-          const therapyName = channelName + " (" + dataToRender[i].TherapyString + " Sense: " + dataToRender[i].RecordingString + ")";
+        if (dataToRender[i].ChannelNames[j].endsWith(" LFP")) {
+          const channelName = dataToRender[i].Device.Heritage + ": " + dataToRender[i].ChannelNames[j].replace(" LFP", "");
+          const therapyName = channelName + " (" + dataToRender[i].Description[j].Stimulation + " Sense: " + dataToRender[i].Description[j].SensingFrequency + ")";
           if (activeChannel == therapyName) {
+            for (let k in dataToRender[i].ChannelNames) {
+              if (dataToRender[i].ChannelNames[k] == dataToRender[i].ChannelNames[j].replace(" LFP", " Amplitude")) {
+                yStim.push(...dataToRender[i].Data[k]);
+              }
+            }
             xData.push(...dataToRender[i].Time);
             yData.push(...dataToRender[i].Data[j]);
             events.push(...annotations.filter((a) => a.Date > dataToRender[i].Time[0] && a.Date < dataToRender[i].Time[dataToRender[i].Time.length-1]).map((a) => a.Date))
@@ -164,8 +183,9 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
     const defaultTimeArray = new Array(145).fill(0).map((a,i) => i*600000);
     for (let i = 0; i < defaultTimeArray.length; i++) {
       graphSeries[0].x.push(new Date(defaultTimeArray[i]+timezoneOffset*60000));
+      graphSeries[1].x.push(new Date(defaultTimeArray[i]+timezoneOffset*60000));
       if (i == 0 || i == 144) {
-        const windowedData = yData.filter((a,t) => inRange(xData[t],defaultTimeArray[0],window) || inRange(xData[t],defaultTimeArray[144],window));
+        let windowedData = yData.filter((a,t) => inRange(xData[t],defaultTimeArray[0],window) || inRange(xData[t],defaultTimeArray[144],window));
         if (windowedData.length > 0) {
           graphSeries[0].y.push(math.mean(windowedData));
           graphSeries[0].error_y.push(math.std(windowedData)/math.sqrt(windowedData.length)*2);
@@ -173,25 +193,42 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
           graphSeries[0].y.push(0);
           graphSeries[0].error_y.push(0);
         }
+
+        windowedData = yStim.filter((a,t) => inRange(xData[t],defaultTimeArray[0],window) || inRange(xData[t],defaultTimeArray[144],window));
+        if (windowedData.length > 0) {
+          graphSeries[1].y.push(math.mean(windowedData));
+          graphSeries[1].error_y.push(math.std(windowedData)/math.sqrt(windowedData.length)*2);
+        } else {
+          graphSeries[1].y.push(0);
+          graphSeries[1].error_y.push(0);
+        }
       } else {
-        const windowedData = yData.filter((a,t) => inRange(xData[t],defaultTimeArray[i],window));
+        let windowedData = yData.filter((a,t) => inRange(xData[t],defaultTimeArray[i],window));
         if (windowedData.length > 0) {
           graphSeries[0].y.push(math.mean(windowedData));
           graphSeries[0].error_y.push(math.std(windowedData)/math.sqrt(windowedData.length)*2);
         } else {
           graphSeries[0].y.push(0);
           graphSeries[0].error_y.push(0);
+        }
+        
+        windowedData = yStim.filter((a,t) => inRange(xData[t],defaultTimeArray[i],window));
+        if (windowedData.length > 0) {
+          graphSeries[1].y.push(math.mean(windowedData));
+          graphSeries[1].error_y.push(math.std(windowedData)/math.sqrt(windowedData.length)*2);
+        } else {
+          graphSeries[1].y.push(0);
+          graphSeries[1].error_y.push(0);
         }
       }
 
-      graphSeries[1].x.push(new Date(defaultTimeArray[i]+timezoneOffset*60000));
-      graphSeries[1].y.push(events.filter((a) => a == defaultTimeArray[i]).length);
+      graphSeries[2].x.push(new Date(defaultTimeArray[i]+timezoneOffset*60000));
+      graphSeries[2].y.push(events.filter((a) => a == defaultTimeArray[i]).length);
     }
 
-    graphSeries[2].x = yData;
-    if (graphSeries[2].x.length > 0) {
-      console.log((math.quantileSeq(yData,0.95) - math.quantileSeq(yData,0.05)))
-      graphSeries[2].options.xbins.size = (math.quantileSeq(yData,0.95) - math.quantileSeq(yData,0.05)) > 2000 ? 20 : 5
+    graphSeries[3].x = yData;
+    if (graphSeries[3].x.length > 0) {
+      graphSeries[3].options.xbins.size = (math.quantileSeq(yData,0.95) - math.quantileSeq(yData,0.05)) > 2000 ? 20 : 5
     }
     setRenderData(graphSeries);
   }, [fig, activeChannel, timerange, annotations, dataToRender, circadianState.amplitude]);
@@ -200,16 +237,21 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
     const ax = fig.getAxes();
     for (let i in renderData) {
       if (renderData[i].type === "line" && !circadianState.histogram) {
-        fig.shadedErrorBar(renderData[i].x, renderData[i].y, renderData[i].error_y, renderData[i].line_options, renderData[i].shade_options, ax[0]);
+        if (i == 0 || (i == 1 && !circadianState.eventCount)) {
+          fig.shadedErrorBar(renderData[i].x, renderData[i].y, renderData[i].error_y, renderData[i].line_options, renderData[i].shade_options, ax[i]);
+        }
         fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Time", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Local", language)})`, {fontSize: 15}, ax[0]);
         fig.setYlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Power", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "AU", language)})`, {fontSize: 15}, ax[0]);
         fig.setAxisProps({
           type: "date",
           tickformat: "%H:%M",
         }, "x", ax[0]);
+        
+        fig.setYlabel("Stimulation Amplitude (mA)", {fontSize: 15}, ax[1]);
       } else if (renderData[i].type === "bar" && circadianState.eventCount) {
         fig.bar(renderData[i].x, renderData[i].y, [], renderData[i].options, ax[1]);
         fig.setYlim([0, math.max(renderData[i].y) || 1], ax[1])
+        fig.setYlabel("Event Count (N)", {fontSize: 15}, ax[1]);
       } else if (renderData[i].type === "histogram" && circadianState.histogram) {
         fig.hist(renderData[i].x, renderData[i].options, ax[0]);
         fig.setXlabel(`Power`, {fontSize: 15}, ax[0]);
@@ -220,6 +262,19 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
         }, "x", ax[0]);
       }
     }
+    
+    fig.setAxisProps({
+      title: {
+        font: {
+          color: "#FF0000"
+        }
+      },
+      tickcolor:  "#FF0000",
+      tickfont: {
+        color: "#FF0000"
+      },
+      showgrid: false
+    }, "y", ax[1]);
     fig.render();
   }
 

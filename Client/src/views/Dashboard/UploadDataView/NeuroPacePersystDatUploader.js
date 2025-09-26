@@ -62,9 +62,6 @@ function NeuroPacePersystDatUploader({institute, participant}) {
   useEffect(() => {
     if (!pond.current) return;
 
-    console.log(files);
-    console.log(pond.current)
-
     let existingUpload = files.map((a) => a.filename);
     let layoutToRemove = [];
     for (let i in files) {

@@ -111,7 +111,6 @@ function AIHealthcare() {
       ModelType: availableModels.active,
       RecordingId: recordingList.active.Id
     }).then((response) => {
-      console.log(response.data)
       setAlert(null);
     }).catch((error) => {
       SessionController.displayError(error, setAlert);

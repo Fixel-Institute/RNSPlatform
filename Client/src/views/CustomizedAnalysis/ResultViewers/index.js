@@ -46,7 +46,6 @@ function ResultViewer({participant_uid, analysisId, onClose, node}) {
       AnalysisId: analysisId,
       ResultId: node.result
     }).then((response) => {
-      console.log(response.data)
       setResult(response.data);
       setAlert(null);
     }).catch((error) => {

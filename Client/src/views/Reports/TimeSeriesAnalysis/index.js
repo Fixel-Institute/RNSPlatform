@@ -64,7 +64,7 @@ import TimeseriesPlayback from "./TimeseriesPlayback";
 function TimeSeriesAnalysis() {
   const navigate = useNavigate();
   const [controller, dispatch] = usePlatformContext();
-  const { experiment, TherapeuticEffectLayout, language } = controller;
+  const { experiment, TimeSeriesAnalysisLayout, language } = controller;
   const { participant_uid } = useParams();
 
   const [recordingId, setRecordingId] = useState([]);
@@ -75,7 +75,9 @@ function TimeSeriesAnalysis() {
 
   const [annotations, setAnnotations] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState({open: false, config: {}});
+  const [layoutOptions, setLayoutOptions] = useState({open: false, config: {}});
   const [channel, setChannel] = useState({active: [], options: []});
+  const [processConfig, setProcessConfig] = useState({});
 
   const [timeseriesPlayback, setTimeseriesPlayback] = useState({data: [], playing: false});
   const [alert, setAlert] = useState(null);
@@ -127,7 +129,14 @@ function TimeSeriesAnalysis() {
           allResponses.push(subResponse.data);
         }
 
+        for (let l in allResponses) {
+          for (let trial in allResponses[l].Signal) {
+            allResponses[l].Signal[trial].SignalSeries.Spectrum.Power = allResponses[l].Signal[trial].SignalSeries.Spectrum.Power.map((a) => a.map((b) => b === null ? -100 : b));
+          }
+        }
+
         if (!channel) {
+          setProcessConfig(allResponses[0].ProcessingConfiguration.TimeSeriesRecording);
           setAnnotations(allResponses[0].Annotations);
           setData({...allResponses[0], CachedChannel: allResponses[0].ActiveChannel, Analysis: analysisList});
           setChannel({active: allResponses[0].ActiveChannel, options: allResponses[0].AllChannels});
@@ -137,6 +146,9 @@ function TimeSeriesAnalysis() {
             data.ActiveChannel = channel;
             for (let l in allResponses) {
               data.Signal.push(...allResponses[l].Signal);
+              if (allResponses[l].Therapy) {
+                data.Therapy.push(...allResponses[l].Therapy);
+              }
             }
             setChannel((oldChannel) => {
               oldChannel.active = channel;
@@ -169,9 +181,13 @@ function TimeSeriesAnalysis() {
       RequestType: "RequestData",
       ParticipantId: participant_uid,
       AnalysisId: analysis.Id,
-      TherapyId: null,
+      TherapyId: analysis.Therapy ? analysis.Therapy[0].Id : null,
       ActiveChannels: data.ActiveChannel ? data.ActiveChannel : []
     });
+
+    for (let trial in response.data.Signal) {
+      response.data.Signal[trial].SignalSeries.Spectrum.Power = response.data.Signal[trial].SignalSeries.Spectrum.Power.map((a) => a.map((b) => b === null ? -100 : b));
+    }
 
     setAlert(<LoadingProgress />);
     setData((data) => {
@@ -187,7 +203,9 @@ function TimeSeriesAnalysis() {
           }
         }
         data.Signal.push(...response.data.Signal);
-        
+        if (response.data.Therapy) {
+          data.Therapy.push(...response.data.Therapy);
+        }
         if (!data.Analysis.includes(analysis)) {
           data.Analysis.push(analysis);
         }
@@ -406,6 +424,23 @@ function TimeSeriesAnalysis() {
                     </Grid>
                     <Grid item xs={12}>
                       <MDBox px={3} pb={3} pt={0}>
+                        <MDTypography variant="h6" fontWeight={"bold"} fontSize={18}>
+                          {"Current Configurations"}
+                        </MDTypography>
+                        <MDTypography variant="h6" fontWeight={"bold"} fontSize={12}>
+                          {"Standard Filter: "}{processConfig.StandardFilter.value}
+                        </MDTypography>
+                        <MDTypography variant="h6" fontWeight={"bold"} fontSize={12}>
+                          {"Cardiac Filter: "}{processConfig.CardiacFilter.value}
+                        </MDTypography>
+                        <MDTypography variant="h6" fontWeight={"bold"} fontSize={12}>
+                          {"Wiener Filter: "}{processConfig.WienerFilter.value}
+                        </MDTypography>
+                      </MDBox>
+                      
+                    </Grid>
+                    <Grid item xs={12}>
+                      <MDBox px={3} pb={3} pt={0}>
                         <Autocomplete
                           multiple
                           value={channel.active}
@@ -433,7 +468,7 @@ function TimeSeriesAnalysis() {
                 </Card>
               </Grid>
             ) : null}
-            {data.Therapy ? (
+            {!TimeSeriesAnalysisLayout.StimulationPSDs && data.Therapy ? (
               <Grid item xs={12}>
                 <Card>
                   <Grid container>
@@ -446,7 +481,7 @@ function TimeSeriesAnalysis() {
                 </Card>
               </Grid>
             ) : null}
-            {data ? (
+            {!TimeSeriesAnalysisLayout.BurstDynamics && data ? (
             <Grid item xs={12}>
               <Card>
                 <MDBox display={"flex"} justifyContent={"space-between"} p={3}>
@@ -467,7 +502,7 @@ function TimeSeriesAnalysis() {
               </Card>
             </Grid>
             ) : null}
-            {annotations.length > 0 ? (
+            {!TimeSeriesAnalysisLayout.EventStatePSD && annotations.length > 0 ? (
               <Grid item xs={12} lg={6}>
                 <Card>
                   <Grid container>
@@ -487,6 +522,7 @@ function TimeSeriesAnalysis() {
           >
             <TimeseriesPlayback dataToRender={timeseriesPlayback.data} />
           </Dialog>
+          <LayoutOptions show={layoutOptions.open} close={() => setLayoutOptions({...layoutOptions, open: false})} setAlert={setAlert} />
           <ConfigurationDialog show={drawerOpen.open} setShow={(state) => setDrawerOpen({open: false})} setAlert={setAlert} />
           <MDBox style={{
             position: 'sticky',
@@ -518,6 +554,12 @@ function TimeSeriesAnalysis() {
                 icon={<SettingsIcon sx={{display: "flex", justifyContent: "center", alignItems: "center", fontSize: 30}}/>}
                 tooltipTitle={"Edit Processing Configurations"}
                 onClick={() => setDrawerOpen({...drawerOpen, open: true})}
+              />
+              <SpeedDialAction
+                key={"EditLayout"}
+                icon={<DashboardIcon sx={{display: "flex", justifyContent: "center", alignItems: "center", fontSize: 30}}/>}
+                tooltipTitle={"Edit Layout"}
+                onClick={() => setLayoutOptions({...layoutOptions, open: true})}
               />
               <SpeedDialAction
                 key={"ClearCache"}

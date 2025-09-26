@@ -36,7 +36,7 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
   const [contextMenu, setContextMenu] = useState(null);
   const [eventInfo, setEventInfo] = useState({ name: "", time: 0, duration: 0, show: false });
   const [dataAlignment, setDataAlignment] = useState({ show: false, alignment: 0 });
-  const [coloraxis, setColorAxis] = useState({ show: false, limit: [-20,20], limit_temp: [-20,20] });
+  const [coloraxis, setColorAxis] = useState({ show: false, limit: [null, null], limit_temp: [-99, 99] });
 
   const [fig, setFig] = useState(null);
   const [renderData, setRenderData] = useState(null);
@@ -100,6 +100,7 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
       for (let trial in dataToRender.Signal) {
         if (dataToRender.Signal[trial].SignalSeries.ChannelNames == activeChannels[i]) {
           var timeArray = Array(dataToRender.Signal[trial].SignalSeries.Data.length).fill(0).map((value, index) => new Date(dataToRender.Signal[trial].SignalSeries.StartTime*1000 + dataToRender.Signal[trial].Alignment*1000 + (1000/dataToRender.Signal[trial].SignalSeries.SamplingRate)*index));
+          dataToRender.Signal[trial].SignalSeries.Data = dataToRender.Signal[trial].SignalSeries.Data.map((a) => a === null ? 0 : a);
           graphSeries.push({
             type: "line",
             x: timeArray, y: dataToRender.Signal[trial].SignalSeries.Data,
@@ -117,15 +118,13 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
           
           var timeArray = Array(dataToRender.Signal[trial].SignalSeries.Spectrum.Time.length).fill(0).map((value, index) => new Date(dataToRender.Signal[trial].SignalSeries.StartTime*1000 + dataToRender.Signal[trial].SignalSeries.Spectrum.Time[index]*1000 + dataToRender.Signal[trial].Alignment*1000));
 
-          const meanPower = Math.quantileSeq(dataToRender.Signal[trial].SignalSeries.Spectrum.Power, [0.5, 0.5]).map((a) => 10*Math.log10(a));
-          //const meanPower = [0,40];
           graphSeries.push({
             type: "surf",
             x: timeArray, y: dataToRender.Signal[trial].SignalSeries.Spectrum.Frequency, z: dataToRender.Signal[trial].SignalSeries.Spectrum.Power.map((a) => {
               return a.map((b) => 10*Math.log10(b));
             }),
             options: {
-              zlim: coloraxis.limit,
+              zlim: coloraxis.limit ,
               hovertemplate: `  %{y:.2f} ${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)}<br>  %{x} <br>  %{z:.2f} ${dictionaryLookup(dictionary.FigureStandardUnit, "dB", language)} <extra></extra>`,
             }, 
             axName: activeChannels[i] + " " + "TimeFrequencyAnalysis"
@@ -153,7 +152,6 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
     }
 
     if (dataToRender.Therapy) {
-      
       const uniqueStimChannels = [];
       for (let trial in dataToRender.Therapy) {
         for (let chan in dataToRender.Therapy[trial].TherapySeries[0].TherapyOverview) {
@@ -239,6 +237,11 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
           fig.plot(renderData[i].x, renderData[i].y, renderData[i].options, subAx);
           fig.setYlim([-renderData[i].ylim*1.1, renderData[i].ylim*1.1], subAx);
         } else if (renderData[i].type === "surf") {
+          if (coloraxis.limit[0] === null) {
+            const range = Math.std(renderData[i].z)
+            const meanPower = Math.quantileSeq(renderData[i].z, [0.11, 0.99]);
+            setColorAxis({...coloraxis, limit: [meanPower[0]+range, meanPower[1]+range], limit_temp: [meanPower[0]+range, meanPower[1]+range]});
+          }
           const caxis = fig.createColorAxis({
             colorscale: "Jet",
             colorbar: {y: (subAx.ydomain[0]+subAx.ydomain[1])/2, len: subAx.ydomain[1]-subAx.ydomain[0]},
@@ -415,7 +418,6 @@ function TimeFrequencyAnalysis({dataToRender, activeChannels, handleAddEvent, ha
                 placeholder={"Lower Limit"}
                 value={coloraxis.limit_temp[0]}
                 onChange={(event) => {
-                  console.log(event.target.value)
                   setColorAxis({...coloraxis, limit_temp: [event.target.value, coloraxis.limit_temp[1]]})
                 }}
               />

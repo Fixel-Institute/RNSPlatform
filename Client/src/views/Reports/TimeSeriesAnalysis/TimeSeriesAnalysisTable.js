@@ -57,6 +57,7 @@ function TimeSeriesAnalysisTable({data, getRecordingData, updateRecordingData, a
   const [showTable, setShowTable] = React.useState(true);
   const [selectedDate, setSelectedDate] = React.useState([]);
   const [availableDates, setAvailableDates] = React.useState([]);
+  const [activeRecording, setActiveRecording] = React.useState([]);
   
   const [filterOptions, setFilterOptions] = React.useState({Type: "", Keyword: "", TypeOptions: []});
   const [displayData, setDisplayData] = React.useState([]);
@@ -330,14 +331,16 @@ function TimeSeriesAnalysisTable({data, getRecordingData, updateRecordingData, a
                     </MDBox>
                   </TableCell>
                   <TableCell style={{borderBottom: "1px solid rgba(224, 224, 224, 0.4)"}}>
-                    <MDButton variant={"contained"} color="info" onClick={() => {
+                    <MDButton variant={"contained"} color="info" disabled={activeRecording.includes(analysis.Id)} onClick={() => {
                       getRecordingData([analysis]);
+                      setActiveRecording([analysis.Id]);
                       setShowTable(false);
                     }} style={{width: 100, padding: 0, marginTop: 3}} fullWidth>
                       {dictionary.ParticipantOverview.ParticipantInformation.View[language]}
                     </MDButton>
-                    <MDButton variant={"contained"} color="warning" onClick={() => {
+                    <MDButton variant={"contained"} color="warning" disabled={activeRecording.includes(analysis.Id)} onClick={() => {
                       addRecordingData(analysis);
+                      setActiveRecording((ids) => ids.includes(analysis.Id) ? ids : [...ids, analysis.Id]);
                       //setShowTable(false);
                     }} style={{width: 100, padding: 0, marginTop: 3}} fullWidth>
                       {"Add To View"}
@@ -408,7 +411,7 @@ function TimeSeriesAnalysisTable({data, getRecordingData, updateRecordingData, a
         </MDButton>
       </MDBox>
     </>
-  ), [data, showTable, editRecordingName, displayData]);
+  ), [data, showTable, activeRecording, editRecordingName, displayData]);
 }
 
 export default TimeSeriesAnalysisTable;

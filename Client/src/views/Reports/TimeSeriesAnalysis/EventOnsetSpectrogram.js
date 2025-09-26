@@ -26,7 +26,7 @@ import { formatSegmentString, matchArray } from "database/helper-function";
 import { usePlatformContext } from "context";
 import { dictionary, dictionaryLookup } from "assets/translation";
 
-function StimulationPSD({dataToRender, channel, figureTitle}) {
+function EventOnsetSpectrogram({dataToRender, annotations, figureTitle}) {
   const [controller, dispatch] = usePlatformContext();
   const { language } = controller;
   
@@ -81,22 +81,38 @@ function StimulationPSD({dataToRender, channel, figureTitle}) {
   useEffect(() => {
     let cacheData = {};
     for (let trial in dataToRender.Signal) {
-      if (dataToRender.Signal[trial].SignalSeries.ChannelNames === channel) {
-        if (!cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames]) {
-          cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames] = {Base: {freq: dataToRender.Signal[trial].SignalSeries.Spectrum.Frequency}};
-        }
+      if (!cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames]) {
+        cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames] = {};
+      }
+      for (let i in annotations) {
+        if (annotations[i].Duration == 0) continue;
         
-        const selected_data = dataToRender.Signal[trial].SignalSeries.Spectrum.Power;
-        if (!cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames].Base.power) {
-          cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames].Base.power = math.matrix(selected_data);
-        } else {
-          cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames].Base.power = math.concat(cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames].Base.power, 
-            selected_data, 1);
+        if (!cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name]) {
+          cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name] = {freq: dataToRender.Signal[trial].SignalSeries.Spectrum.Frequency}
         }
+
+        const selected_data = dataToRender.Signal[trial].SignalSeries.Spectrum.Power.map((a) => {
+          return a.filter((b,t) => {
+            const currentTime = dataToRender.Signal[trial].SignalSeries.Spectrum.Time[t] + dataToRender.Signal[trial].SignalSeries.StartTime + dataToRender.Signal[trial].Alignment;
+            return (currentTime >= annotations[i].Date) && (currentTime <= (annotations[i].Date+annotations[i].Duration));
+          })
+        });
+
+        if (selected_data.filter((a) => a.length > 0).length != 0) {
+          if (!cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name].power) {
+            cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name].power = math.matrix(selected_data);
+          } else {
+            cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name].power = math.concat(cacheData[dataToRender.Signal[trial].SignalSeries.ChannelNames][annotations[i].Name].power, 
+              selected_data, 1);
+          }
+        } else {
+
+        }
+
       }
     }
     setCacheData(cacheData);    
-  }, [dataToRender, channel]);
+  }, [dataToRender, annotations]);
 
   useEffect(() => {
     const colors = colormap({
@@ -141,6 +157,10 @@ function StimulationPSD({dataToRender, channel, figureTitle}) {
     
     setRenderData(graphSeries);    
   }, [fig, cacheData, options.value]);
+
+  useEffect(() => {
+    
+  }, [centerFreq]);
 
   const refreshRender = (fig) => {
     for (let i in renderData) {
@@ -203,6 +223,23 @@ function StimulationPSD({dataToRender, channel, figureTitle}) {
 
   return useMemo(() => (
     <Grid container spacing={0}>
+      <Grid item xs={12}>
+        <MDBox px={3} pt={3}>
+          <Autocomplete
+            value={options.value}
+            options={options.options}
+            onChange={(event, value) => setOptions({...options, value: value})}
+            renderInput={(params) => (
+              <FormField
+                {...params}
+                label={"Therapy Label Selector"}
+                InputLabelProps={{ shrink: true }}
+              />
+            )}
+            disableClearable
+          />
+        </MDBox>
+      </Grid>
       <Grid key={figureTitle} item xs={12}>
         <MDBox ref={ref} id={figureTitle} style={{height: 600, width: "100%"}}/>
       </Grid>
@@ -210,4 +247,4 @@ function StimulationPSD({dataToRender, channel, figureTitle}) {
   ), [refresh]);
 }
 
-export default StimulationPSD;
+export default EventOnsetSpectrogram;

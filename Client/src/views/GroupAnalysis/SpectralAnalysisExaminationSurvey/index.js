@@ -82,7 +82,6 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
         return a
       }));
 
-      console.log(response.data.RecordingCollection)
       setAlert(null);
     }).catch((error) => {
       SessionController.displayError(error, setAlert);

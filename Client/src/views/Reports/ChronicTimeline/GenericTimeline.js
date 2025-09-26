@@ -19,6 +19,12 @@ import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
 
+import moment from "moment";
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from "@mui/x-date-pickers";
+
 import colormap from "colormap";
 import { TwitterPicker, BlockPicker } from "react-color";
 
@@ -36,7 +42,7 @@ export default function GenericTimeline({data, availableChannels, annotations, h
   const { language } = controller;
 
   const [contextMenu, setContextMenu] = useState(null);
-  const [eventInfo, setEventInfo] = useState({ name: "", time: 0, duration: 0, show: false });
+  const [eventInfo, setEventInfo] = useState({ name: "", time: 0, enddate: null, endtime: null, show: false });
   const [popup, setPopupState] = useState({item: ""});
 
   const [fig, setFig] = useState(null);
@@ -68,53 +74,7 @@ export default function GenericTimeline({data, availableChannels, annotations, h
     fig.setLayoutProps({ barmode: "group", hovermode: "x", hoverdistance: 1 });
 
     if (!fig.fresh) {
-      let caxis = fig.getColorAxis();
-      for (let i in caxis) {
-        fig.setColorAxis(null, caxis[i]);
-      }
-
-      let clim = {};
-      for (let i in renderData) {
-        const subAx = fig.getAxes(renderData[i].axName);
-        if (subAx) {
-          if (renderData[i].type === "surf") {
-            if (!clim[renderData[i].axName]) {
-              clim[renderData[i].axName] = {
-                caxis: fig.createColorAxis({
-                  colorscale: "Jet",
-                  colorbar: {y: (subAx.ydomain[0]+subAx.ydomain[1])/2, len: subAx.ydomain[1]-subAx.ydomain[0]},
-                  clim: renderData[i].options.zlim,
-                }),
-                limits: [0,0]
-              }
-            }
-          }
-          if (renderData[i].type === "surf") {
-            if (renderData[i].options.zlim[0] < clim[renderData[i].axName].limits[0] || clim[renderData[i].axName].limits[0] == 0) clim[renderData[i].axName].limits[0] = renderData[i].options.zlim[0];
-            if (renderData[i].options.zlim[1] > clim[renderData[i].axName].limits[1] || clim[renderData[i].axName].limits[1] == 0) clim[renderData[i].axName].limits[1] = renderData[i].options.zlim[1];
-            fig.surf(renderData[i].x, renderData[i].y, renderData[i].z, {...renderData[i].options,
-              coloraxis: clim[renderData[i].axName].caxis
-            }, subAx);
-            fig.setYlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Frequency", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)})`, {fontSize: 15}, subAx);
-      
-          } else if (renderData[i].type === "lineseries") {
-            fig.plot(renderData[i].x, renderData[i].y, renderData[i].options, subAx);
-          } else if (renderData[i].type == "bar") {
-            fig.setScaleType("category", "y", subAx);
-            fig.setScaleType("date", "x", subAx);
-            fig.setAxisProps({
-              categoryorder: "array",
-              categoryarray: ["deep", "light", "rem", "wake", "awake", "asleep"] 
-            }, "y", subAx);
-            fig.bar(renderData[i].x, renderData[i].y, renderData[i].base, renderData[i].options, subAx);
-          }
-        }
-      }
-
-      if (availableChannels.active.length == 1) {
-        fig.fresh = true;
-      }
-      fig.render();
+      setRenderData([...renderData]);
     }
 
   }, [fig, availableChannels]);
@@ -136,13 +96,14 @@ export default function GenericTimeline({data, availableChannels, annotations, h
             xData.push(new Date(data[i].Time[t]*1000 + data[i].Duration[t]*1000));
           }
         }
-        
+
         for (let j in data[i].ChannelNames) {
           if (data[i].ChannelUnits[j] === "Category") {
             const yData = [];
             for (let t in data[i].Time) {
               yData.push(data[i]["Data"][j][t]);
             }
+
             barSeries.push({
               type: "bar",
               x: data[i]["Duration"].map((a,t) => new Date(a)*1000), y: data[i]["Data"][j], base: data[i].Time.map((a) => new Date(a*1000)),
@@ -171,7 +132,6 @@ export default function GenericTimeline({data, availableChannels, annotations, h
               options: {
                 id: data[i].ChannelNames[j],
                 linewidth: 2,
-                line: {shape: "hvh"},
                 color: "#000000",
                 hovertemplate: "%{y}<extra></extra>"
               }, 
@@ -221,6 +181,40 @@ export default function GenericTimeline({data, availableChannels, annotations, h
       }
     }
 
+    for (let i in annotations) {
+      if (!annotations[i].Duration) {
+        lineSeries.push({
+          type: "annotations",
+          x: [new Date(annotations[i].Date*1000), new Date(annotations[i].Date*1000)], y: [-50000, 50000],
+          options: {
+            id: annotations[i].Id,
+            name: annotations[i].Name,
+            linewidth: 2,
+            color: annotationState[annotations[i].Name] ? annotationState[annotations[i].Name].color : "#00FF00",
+            hovertemplate: "  %{x} <br>  " + annotations[i].Name + " <extra></extra>"
+          }, 
+          axName: "all"
+        });
+      } else {
+        lineSeries.push({
+          type: "shading",
+          x: [new Date(annotations[i].Date*1000), new Date(annotations[i].Date*1000 + annotations[i].Duration*1000)],
+          xDot: [new Date(annotations[i].Date*1000)],
+          y: [-50000, 50000],
+          yDot: [0],
+          options: {
+            id: annotations[i].Id,
+            name: annotations[i].Name,
+            size: 10,
+            color: annotationState[annotations[i].Name] ? annotationState[annotations[i].Name].color : "#00FF00",
+            alpha: 0.3, 
+            hovertemplate: "  %{x} <br>  " + annotations[i].Name + " <extra></extra>"
+          }, 
+          axName: "all"
+        })
+      }
+    }
+
     setRenderData(lineSeries);
     
   }, [fig, data, annotations]);
@@ -248,7 +242,7 @@ export default function GenericTimeline({data, availableChannels, annotations, h
 
     setRenderData((renderData) => {
       for (let i in renderData) {
-        if (renderData[i].type === "annotations") {
+        if (renderData[i].type === "shading") {
           renderData[i].options.color = annotationState[renderData[i].options.name] ? annotationState[renderData[i].options.name].color : "#00FF00";
           renderData[i].options.hidden = annotationState[renderData[i].options.name] ? !annotationState[renderData[i].options.name].show : false;
         }
@@ -289,8 +283,12 @@ export default function GenericTimeline({data, availableChannels, annotations, h
           const currentMax = Math.max(renderData[i].y.filter((a) => a !== null));
           if (currentMax > yLim[renderData[i].axName][1]) {
             yLim[renderData[i].axName][1] = currentMax*1.1;
-            fig.setYlim(yLim[renderData[i].axName], ax);
           };
+          const currentMin = Math.min(renderData[i].y.filter((a) => a !== null));
+          if (currentMin < yLim[renderData[i].axName][0]) {
+            yLim[renderData[i].axName][0] = currentMin*1.1;
+          };
+          fig.setYlim(yLim[renderData[i].axName], ax);
           fig.setScaleType("linear", "y", ax);
           fig.plot(renderData[i].x, renderData[i].y, renderData[i].options, ax);
         }
@@ -304,12 +302,6 @@ export default function GenericTimeline({data, availableChannels, annotations, h
           }, ax);
         }
       } else if (renderData[i].type == "bar") {
-        //if (!yLim[renderData[i].axName]) yLim[renderData[i].axName] = [0,1];
-        //const currentMax = Math.max(renderData[i].y.filter((a) => a !== null));
-        //if (currentMax > yLim[renderData[i].axName][1]) {
-        //  yLim[renderData[i].axName][1] = currentMax*1.1;
-        //  fig.setYlim(yLim[renderData[i].axName], ax);
-        //};
         if (!renderData[i].options.hidden && ax) {
           fig.setScaleType("category", "y", ax);
           fig.setScaleType("date", "x", ax);
@@ -318,6 +310,18 @@ export default function GenericTimeline({data, availableChannels, annotations, h
             categoryarray: ["deep", "light", "rem", "wake", "awake", "asleep"] 
           }, "y", ax);
           fig.bar(renderData[i].x, renderData[i].y, renderData[i].base, renderData[i].options, ax);
+        }
+      }
+    }
+
+    for (let i in renderData) {
+      if (renderData[i].axName == "all") { 
+        if (renderData[i].type === "shading" && !renderData[i].options.hidden) {
+          const ax = fig.getAxes();
+          for (let j in ax) {
+            fig.addShadedArea(renderData[i].x, yLim[ax[j].id], {...renderData[i].options, hovertemplate: "<extra></extra>"}, ax[j]);
+            fig.scatter(renderData[i].xDot, renderData[i].yDot, renderData[i].options, ax[j]);
+          }
         }
       }
     }
@@ -344,6 +348,8 @@ export default function GenericTimeline({data, availableChannels, annotations, h
     setEventInfo((eventInfo) => {
       eventInfo.channel_name = evt.detail.ax.id;
       eventInfo.time = new Date(evt.detail.x).getTime();
+      eventInfo.enddate = new moment(new Date(evt.detail.x));
+      eventInfo.endtime = new moment(new Date(evt.detail.x));
       return eventInfo;
     });
   }
@@ -420,7 +426,7 @@ export default function GenericTimeline({data, availableChannels, annotations, h
         </Grid>
       </Grid>
       <Grid item xs={12}>
-        <MDBox ref={ref} onContextMenu={onContextMenu} id={figureTitle} style={{marginBottom: 10, height: 400*availableChannels.active.length+100, width: "100%", visibility: availableChannels.active.length == 0 ? "hidden" : ""}}>
+        <MDBox ref={ref} onContextMenu={onContextMenu} id={figureTitle} style={{marginBottom: 10, height: 400*availableChannels.active.length+100, width: "100%", display: availableChannels.active.length == 0 ? "none" : ""}}>
           <Menu
             open={contextMenu !== null}
             onClose={() => setContextMenu(null)}
@@ -470,15 +476,28 @@ export default function GenericTimeline({data, availableChannels, annotations, h
                   />
                 </Grid>
                 <Grid item xs={12} style={{display: "flex", flexDirection: "column"}}>
-                  <TextField
-                    variant="standard"
-                    margin="dense"
-                    type={"number"}
-                    label="Event Duration"
-                    placeholder={"0 for Instant Event"}
-                    value={eventInfo.duration}
-                    onChange={(event) => setEventInfo({...eventInfo, duration: event.target.value})}
-                  />
+                  <MDBox display={"flex"} flexDirection={"row"} alignItems={"center"} justifyContent={"space-between"}>
+                    <LocalizationProvider dateAdapter={AdapterMoment} adapterLocale={"us"}>
+                      <DatePicker
+                        label="Date"
+                        value={eventInfo.enddate}
+                        onChange={(newDate) => {
+                          setEventInfo({...eventInfo, enddate: newDate});
+                        }}
+                        renderInput={(params) => <TextField {...params} />}
+                      />
+                    </LocalizationProvider>
+                    <LocalizationProvider dateAdapter={AdapterMoment}>
+                      <TimePicker
+                        label="Time"
+                        value={eventInfo.endtime}
+                        onChange={(newDate) => {
+                          setEventInfo({...eventInfo, endtime: newDate});
+                        }}
+                        renderInput={(params) => <TextField {...params} />}
+                      />
+                    </LocalizationProvider>
+                  </MDBox>
                 </Grid>
               </Grid>
             </DialogContent>

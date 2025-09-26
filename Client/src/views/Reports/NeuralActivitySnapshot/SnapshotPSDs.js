@@ -60,7 +60,7 @@ function SnapshotPSDs({dataToRender, figureTitle}) {
       } else {
         fig.subplots(1, 1, {sharey: false, sharex: false});
         fig.setScaleType("log", "y");
-        fig.setTickValue([0.001, 0.01, 0.1, 1, 10, 100, 1000], "y");
+        fig.setTickValue([0.000001, 0.00001, 0.0001, 0.001, 0.01, 0.1, 1, 10, 100, 1000, 10000, 100000], "y");
         fig.setYlim([-3, 2]);
         fig.setXlim([0, 100]);
         fig.setXlabel(`${dictionaryLookup(dictionary.FigureStandardText, "Frequency", language)} (${dictionaryLookup(dictionary.FigureStandardUnit, "Hertz", language)})`, {fontSize: 15});
@@ -86,8 +86,10 @@ function SnapshotPSDs({dataToRender, figureTitle}) {
 
     let graphSeries = [];
     for (let i in dataToRender) {
+      const ylim = math.quantileSeq(dataToRender[i].Power, [0.25, 1]).map((a) => Math.round(Math.log10(a)));
       graphSeries.push({
         type: "line", x: dataToRender[i].Frequency, y: dataToRender[i].Power, error_y: dataToRender[i].stdPower,
+        ylim: ylim,
         line_options: {
           linewidth: 2,
           name: dataToRender[i].ChannelName,
@@ -126,9 +128,13 @@ function SnapshotPSDs({dataToRender, figureTitle}) {
   }, [figGroup, dataToRender, centerFreq]);
 
   const refreshRender = (fig, figName) => {
+    let psdYlim = [0,0];
     for (let i in renderData) {
       if (renderData[i].figName == figName) {
         if (renderData[i].type === "line") {
+          if (renderData[i].ylim[1] > psdYlim[1]) psdYlim[1] = renderData[i].ylim[1];
+          if (renderData[i].ylim[0] < psdYlim[0]) psdYlim[0] = renderData[i].ylim[0];
+          fig.setYlim(psdYlim);
           fig.shadedErrorBar(renderData[i].x, renderData[i].y, renderData[i].error_y, renderData[i].line_options, renderData[i].shade_options);
         } else if (renderData[i].type === "bar") {
           fig.bar(renderData[i].x, renderData[i].y, [], renderData[i].options);

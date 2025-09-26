@@ -246,6 +246,8 @@ export const SessionController = (function () {
     session = {...session, ...response.data.session};
     localStorage.setItem("sessionContext", JSON.stringify(session));
 
+    session["TimeSeriesAnalysisLayout"] = {};
+
     user = response.data.user;
     return getSession();
   };

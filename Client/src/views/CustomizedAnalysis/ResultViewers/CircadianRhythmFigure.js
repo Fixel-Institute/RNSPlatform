@@ -119,7 +119,6 @@ function CircadianRhythmFigure({dataToRender, analysisId, resultId, figureTitle}
     let xData = [], yData = [];
     for (let i in data.Signal) {
       if (availableChannels.active == data.Signal[i].SignalSeries.ChannelNames) {
-        console.log(data.Signal[i].SignalSeries.ChannelNames)
         for (let j in data.Signal[i].SignalSeries.Epochs) {
           xData.push(...data.Signal[i].SignalSeries.Epochs[j].Time.map((a) => (a % 86400)*1000));
           yData.push(...data.Signal[i].SignalSeries.Epochs[j].Data);
