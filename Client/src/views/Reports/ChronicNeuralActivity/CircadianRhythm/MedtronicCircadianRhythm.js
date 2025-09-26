@@ -149,6 +149,7 @@ function MedtronicCircadianRhythm({dataToRender, annotations, circadianState, ch
     let yStim = [];
     for (let i in dataToRender) {
       for (let j in dataToRender[i].ChannelNames) {
+        if (dataToRender[i].Description[j].Bypass) continue;
         if (dataToRender[i].ChannelNames[j].endsWith(" LFP")) {
           const channelName = dataToRender[i].Device.Heritage + ": " + dataToRender[i].ChannelNames[j].replace(" LFP", "");
           const therapyName = channelName + " (" + dataToRender[i].Description[j].Stimulation + " Sense: " + dataToRender[i].Description[j].SensingFrequency + ")";

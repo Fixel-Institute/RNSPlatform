@@ -133,7 +133,7 @@ export default function MedtronicChronicTimeline({data, availableChannels, showA
       let timeArray = data[i]["Time"].map((a) => new Date(a*1000));
       for (let j in data[i].ChannelNames) {
         const channelName = data[i].Device.Heritage + ": " + (data[i].ChannelNames[j].endsWith("Amplitude") ? data[i].ChannelNames[j].replace(" Amplitude", " Stimulation") : data[i].ChannelNames[j].replace(" LFP", ""));
-        if (!data[i].Description[j].Bypassed || channelName.endsWith("Stimulation")) {
+        if (!data[i].Description[j].Bypass || channelName.endsWith("Stimulation")) {
           const AdaptiveParameters = getAdaptiveParameters(data[i].TherapyNote, data[i]["ChannelNames"][j]);
           if (channelName.endsWith("Stimulation")) {
             if (AdaptiveParameters.StimulationLimits && showAdaptiveMode) {

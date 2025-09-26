@@ -103,9 +103,7 @@ import { dictionary, dictionaryLookup } from "assets/translation.js";
             if (!availableChannels.includes(channelName)) {
               availableChannels.push(channelName);
             }
-            if (response.data.ChronicNeuralActivity[i].Description.Bypassed) {
-              continue;
-            }
+            if (response.data.ChronicNeuralActivity[i].Description[j].Bypass) continue;
             const therapyName = channelName + " (" + response.data.ChronicNeuralActivity[i].Description[j].Stimulation + " Sense: " + response.data.ChronicNeuralActivity[i].Description[j].SensingFrequency + ")"
             if (!availableTherapy.includes(therapyName)) {
               availableTherapy.push(therapyName);
