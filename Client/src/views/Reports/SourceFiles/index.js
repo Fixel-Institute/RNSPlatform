@@ -223,22 +223,22 @@ export default function SourceFiles() {
               <MedtronicSourceFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {sourceFileType.active == "NeuroImaging Data" ? (
-              <NeuroImageFileTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <NeuroImageFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {sourceFileType.active == "AlphaOmega MPX Format" ? (
-              <AOMPXFileTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <AOMPXFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {sourceFileType.active == "HDF CSV Format" ? (
-              <HPFCSVFileTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <HPFCSVFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {["ChronicNeuralActivitySource","FitbitWebAPISource"].includes(sourceFileType.active) ? (
-              <DefaultFileTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <DefaultFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {["MATFile","Synchronized External Device Data"].includes(sourceFileType.active) ? (
-              <ExternalDevicesFileTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <ExternalDevicesFileTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
             {["BRAVORecordingBinaryStructure"].includes(sourceFileType.active) ? (
-              <BRAVORecordingTable data={viewSourceFiles} deleteData={handleDeleteSourceFile} />
+              <BRAVORecordingTable data={viewSourceFiles} downloadData={handleDownloadSourceFile} deleteData={handleDeleteSourceFile} />
             ) : null}
           </MDBox>
         </Card>
