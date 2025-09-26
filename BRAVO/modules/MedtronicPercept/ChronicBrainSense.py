@@ -180,10 +180,14 @@ def extractChronicNeuralActivity(participant, devices, recordings, config):
                         for k in range(len(Activity["ChannelNames"])):
                             mean = np.nanmean(Activity["Data"][k,:])
                             std = np.nanstd(Activity["Data"][k,:])
+                            
+                            counter = 0
                             while True:
+                                counter += 1
                                 outlier_idx = np.where(Activity["Data"][k,:] > mean + 6*std)[0]
-                                if len(outlier_idx) == 0:
+                                if len(outlier_idx) == 0 or counter > 10:
                                     break
+                                
                                 for idx in outlier_idx:
                                     if 0 < idx < len(Activity["Data"][k,:]) - 1:
                                         Activity["Data"][k,idx] = np.nanmean([Activity["Data"][k,idx-1], Activity["Data"][k,idx+1]])
@@ -211,7 +215,9 @@ def extractChronicNeuralActivity(participant, devices, recordings, config):
                                         TherapyNote["StimulationSettings"][leadId]["Contact"] = "{" + "|".join([str(f["Value"]) for f in TherapyNote["StimulationSettings"][leadId]["Contact"]]) + "}"
                                     if TherapyNote["StimulationSettings"][leadId]["ReturnContact"] == ["CAN"]:
                                         TherapyString = str(TherapyNote["StimulationSettings"][leadId]["Frequency"]) + "Hz " + str(TherapyNote["StimulationSettings"][leadId]["Pulsewidth"]) + TherapyNote["StimulationSettings"][leadId]["PulsewidthUnit"] + " [" + "|".join(TherapyNote["StimulationSettings"][leadId]["Contact"]) + "]"
-
+                                    else:
+                                        TherapyString = str(TherapyNote["StimulationSettings"][leadId]["Frequency"]) + "Hz " + str(TherapyNote["StimulationSettings"][leadId]["Pulsewidth"]) + TherapyNote["StimulationSettings"][leadId]["PulsewidthUnit"] + " [" + "Unknown" + "]"
+                                    
                                     Description["Stimulation"] = TherapyString
                                     if "RecordingConfiguration" in TherapyNote["AdaptiveSettings"][leadId].keys():
                                         if "SensingSetup" in TherapyNote["AdaptiveSettings"][leadId]["RecordingConfiguration"]["Config"].keys():
